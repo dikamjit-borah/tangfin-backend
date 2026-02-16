@@ -20,9 +20,20 @@ export const config = {
     level: process.env.LOG_LEVEL || 'debug',
     maxFiles: process.env.LOG_MAX_FILES || '14',
   },
-  firebase: {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  },
+   firebase: (() => {
+    try {
+      if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+        return null;
+      }
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      // Fix escaped newlines in private_key
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      return serviceAccount;
+    } catch (error) {
+      console.error('Invalid FIREBASE_SERVICE_ACCOUNT_JSON:', error);
+      return null;
+    }
+  })(),
 };

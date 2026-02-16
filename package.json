@@ -9,7 +9,7 @@
     "prebuild": "rimraf dist",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "node dist/main",
+    "start": "npm run prebuild && npm run build && node dist/main",
     "stage": "SET NODE_ENV=stage && nest start --watch",
     "stage:unix": "NODE_ENV=stage nest start --watch",
     "start:debug": "nest start --debug --watch",

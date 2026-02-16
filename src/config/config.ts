@@ -6,7 +6,7 @@ dotenv.config({ path: join(__dirname, '..', '..', '.env') });
 export const config = {
   app: {
     name: process.env.APP_NAME || 'tailfin-backend',
-    port: parseInt(process.env.APP_PORT || '3000', 10),
+    port: parseInt(process.env.PORT || '3001', 10),
     env: process.env.NODE_ENV || 'development',
   },
   database: {

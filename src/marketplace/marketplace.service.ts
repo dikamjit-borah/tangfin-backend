@@ -1,104 +1,181 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Listing } from './schemas/listing.schema';
 
 @Injectable()
 export class MarketplaceService {
-  getListings(query: any) {
+  constructor(
+    @InjectModel(Listing.name) private listingModel: Model<Listing>,
+  ) {}
+
+  async getListings(query: any) {
     const { category, location, page = 1, limit = 20, sort = 'createdAt' } = query;
-    const listings = [
-      { id: '1', title: 'Fresh Salmon', price: 500, category: 'fish', location: 'Mumbai', featured: true, views: 120 },
-      { id: '2', title: 'Tuna Fish', price: 800, category: 'fish', location: 'Mumbai', featured: false, views: 85 },
-    ];
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const filter: any = { active: true };
+    if (category) filter.category = category;
+    if (location) filter.location = location;
+
+    const sortOrder = sort.startsWith('-') ? -1 : 1;
+    const sortField = sort.replace('-', '');
+
+    const [listings, total] = await Promise.all([
+      this.listingModel
+        .find(filter)
+        .sort({ [sortField]: sortOrder })
+        .skip(skip)
+        .limit(Number(limit))
+        .exec(),
+      this.listingModel.countDocuments(filter).exec(),
+    ]);
+
     return {
       listings,
-      pagination: { page: Number(page), limit: Number(limit), totalPages: 1 },
-      total: listings.length,
-    };
-  }
-
-  getFeaturedListings(limit: number = 6) {
-    const listings = [
-      { id: '1', title: 'Fresh Salmon', price: 500, category: 'fish', location: 'Mumbai', featured: true },
-      { id: '3', title: 'Premium Prawns', price: 1200, category: 'fish', location: 'Delhi', featured: true },
-    ];
-    return { listings: listings.slice(0, limit) };
-  }
-
-  getListing(id: string) {
-    return {
-      listing: {
-        id,
-        title: 'Fresh Salmon',
-        description: 'High quality fresh salmon',
-        price: 500,
-        category: 'fish',
-        location: 'Mumbai',
-        delivery: true,
-        pickup: true,
-        images: ['image1.jpg', 'image2.jpg'],
-        views: 120,
-        createdAt: new Date(),
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
       },
+      total,
     };
   }
 
-  createListing(data: any) {
-    return {
-      listing: {
-        id: '123',
-        ...data,
-        createdAt: new Date(),
-        views: 0,
-      },
-    };
+  async getFeaturedListings(limit: number = 6) {
+    const listings = await this.listingModel
+      .find({ featured: true, active: true })
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .exec();
+
+    return { listings };
   }
 
-  updateListing(id: string, data: any) {
-    return {
-      listing: {
-        id,
-        ...data,
-        updatedAt: new Date(),
-      },
-    };
+  async getListing(id: string) {
+    const listing = await this.listingModel.findById(id).exec();
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+    return { listing };
   }
 
-  deleteListing(id: string) {
+  async createListing(data: any) {
+    const listing = new this.listingModel({
+      ...data,
+      userId: data.userId || 'user123', // Should come from auth
+      views: 0,
+      favoritedBy: [],
+      active: true,
+    });
+    await listing.save();
+    return { listing };
+  }
+
+  async updateListing(id: string, data: any) {
+    const listing = await this.listingModel
+      .findByIdAndUpdate(id, data, { new: true })
+      .exec();
+    
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+    return { listing };
+  }
+
+  async deleteListing(id: string) {
+    const result = await this.listingModel.findByIdAndDelete(id).exec();
+    if (!result) {
+      throw new NotFoundException('Listing not found');
+    }
     return { success: true };
   }
 
-  getUserListings(userId: string, query: any) {
+  async getUserListings(userId: string, query: any) {
     const { page = 1, limit = 20 } = query;
-    const listings = [
-      { id: '1', title: 'User Listing 1', userId, price: 300 },
-      { id: '2', title: 'User Listing 2', userId, price: 450 },
-    ];
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [listings, total] = await Promise.all([
+      this.listingModel
+        .find({ userId })
+        .skip(skip)
+        .limit(Number(limit))
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.listingModel.countDocuments({ userId }).exec(),
+    ]);
+
     return {
       listings,
-      pagination: { page: Number(page), limit: Number(limit), totalPages: 1 },
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     };
   }
 
-  incrementViews(id: string) {
-    return { views: 121 };
+  async incrementViews(id: string) {
+    const listing = await this.listingModel
+      .findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true })
+      .exec();
+    
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+    return { views: listing.views };
   }
 
-  addToFavorites(id: string, userId: string) {
+  async addToFavorites(id: string, userId: string) {
+    const listing = await this.listingModel
+      .findByIdAndUpdate(
+        id,
+        { $addToSet: { favoritedBy: userId } },
+        { new: true },
+      )
+      .exec();
+    
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
     return { success: true };
   }
 
-  removeFromFavorites(id: string, userId: string) {
+  async removeFromFavorites(id: string, userId: string) {
+    const listing = await this.listingModel
+      .findByIdAndUpdate(
+        id,
+        { $pull: { favoritedBy: userId } },
+        { new: true },
+      )
+      .exec();
+    
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
     return { success: true };
   }
 
-  getFavorites(userId: string, query: any) {
+  async getFavorites(userId: string, query: any) {
     const { page = 1, limit = 20 } = query;
-    const listings = [
-      { id: '5', title: 'Favorite Listing 1', price: 600 },
-      { id: '8', title: 'Favorite Listing 2', price: 900 },
-    ];
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [listings, total] = await Promise.all([
+      this.listingModel
+        .find({ favoritedBy: userId, active: true })
+        .skip(skip)
+        .limit(Number(limit))
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.listingModel.countDocuments({ favoritedBy: userId, active: true }).exec(),
+    ]);
+
     return {
       listings,
-      pagination: { page: Number(page), limit: Number(limit), totalPages: 1 },
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     };
   }
 }

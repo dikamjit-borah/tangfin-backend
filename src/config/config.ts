@@ -20,4 +20,9 @@ export const config = {
     level: process.env.LOG_LEVEL || 'debug',
     maxFiles: process.env.LOG_MAX_FILES || '14',
   },
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  },
 };

@@ -1,26 +1,40 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { config } from '../../config/config';
 
 @Injectable()
-export class FirebaseService implements OnModuleInit {
-  private app: admin.app.App;
-
-  onModuleInit() {
-    this.app = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: config.firebase.projectId,
-        privateKey: config.firebase.privateKey?.replace(/\\n/g, '\n'),
-        clientEmail: config.firebase.clientEmail,
-      } as admin.ServiceAccount),
-    });
+export class FirebaseService {
+  constructor() {
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(config.firebase as admin.ServiceAccount),
+      });
+    }
   }
 
-  async verifyIdToken(idToken: string): Promise<admin.auth.DecodedIdToken> {
-    return await admin.auth().verifyIdToken(idToken);
+  async verifyIdToken(idToken: string) {
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      return decodedToken;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid Firebase token');
+    }
   }
 
-  getAuth() {
-    return admin.auth();
+  async getUser(uid: string) {
+    try {
+      return await admin.auth().getUser(uid);
+    } catch (error) {
+      throw new UnauthorizedException('User not found in Firebase');
+    }
+  }
+
+  async getUserByEmail(email: string) {
+    try {
+      return await admin.auth().getUserByEmail(email);
+    } catch (error) {
+      // User not found is not an error in this case
+      return null;
+    }
   }
 }

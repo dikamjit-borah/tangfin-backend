@@ -9,10 +9,16 @@ import { config } from './config/config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { MarketplaceModule } from './marketplace/marketplace.module';
+import { CommunityModule } from './community/community.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     MongooseModule.forRoot(config.database.uri),
+    MarketplaceModule,
+    CommunityModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

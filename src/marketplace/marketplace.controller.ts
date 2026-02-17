@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, Headers } from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
 
-@Controller('listings')
+@Controller('marketplace')
 export class MarketplaceController {
   constructor(private readonly marketplaceService: MarketplaceService) {}
 
-  @Get()
+  @Get('listings')
   getListings(@Query() query: any) {
     return this.marketplaceService.getListings(query);
   }

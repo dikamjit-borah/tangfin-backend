@@ -3,15 +3,15 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  Logger,
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Request, Response } from 'express';
+import { LoggerServiceProvider } from '../services/logger.service';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(LoggingInterceptor.name);
+  constructor(private readonly logger: LoggerServiceProvider) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -32,15 +32,17 @@ export class LoggingInterceptor implements NestInterceptor {
 
         // Log only on development or for debugging
         if (process.env.NODE_ENV === 'development') {
-          this.logger.debug({
-            method,
-            url,
-            statusCode,
-            duration,
-            query,
-            params,
-            body: this.sanitizeBody(body),
-          });
+          this.logger.debug(
+            `${method} ${url}`,
+            'HTTP Request',
+            {
+              statusCode,
+              duration,
+              query,
+              params,
+              body: this.sanitizeBody(body),
+            },
+          );
         }
       }),
       catchError((error) => {

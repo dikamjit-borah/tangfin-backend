@@ -2,15 +2,25 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Listing } from './schemas/listing.schema';
+import { Category } from './schemas/category.schema';
+import { Location } from './schemas/location.schema';
 
 @Injectable()
 export class MarketplaceService {
   constructor(
     @InjectModel(Listing.name) private listingModel: Model<Listing>,
+    @InjectModel(Category.name) private categoryModel: Model<Category>,
+    @InjectModel(Location.name) private locationModel: Model<Location>,
   ) {}
 
   async getListings(query: any) {
-    const { category, location, page = 1, limit = 20, sort = 'createdAt' } = query;
+    const {
+      category,
+      location,
+      page = 1,
+      limit = 20,
+      sort = 'createdAt',
+    } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const filter: any = { active: true };
@@ -52,7 +62,7 @@ export class MarketplaceService {
   }
 
   async getListing(listingId: string) {
-    const listing = await this.listingModel.findOne({listingId}).exec();
+    const listing = await this.listingModel.findOne({ listingId }).exec();
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
@@ -75,7 +85,7 @@ export class MarketplaceService {
     const listing = await this.listingModel
       .findByIdAndUpdate(id, data, { new: true })
       .exec();
-    
+
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
@@ -118,7 +128,7 @@ export class MarketplaceService {
     const listing = await this.listingModel
       .findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true })
       .exec();
-    
+
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
@@ -133,7 +143,7 @@ export class MarketplaceService {
         { new: true },
       )
       .exec();
-    
+
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
@@ -142,13 +152,9 @@ export class MarketplaceService {
 
   async removeFromFavorites(id: string, userId: string) {
     const listing = await this.listingModel
-      .findByIdAndUpdate(
-        id,
-        { $pull: { favoritedBy: userId } },
-        { new: true },
-      )
+      .findByIdAndUpdate(id, { $pull: { favoritedBy: userId } }, { new: true })
       .exec();
-    
+
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
@@ -166,7 +172,9 @@ export class MarketplaceService {
         .limit(Number(limit))
         .sort({ createdAt: -1 })
         .exec(),
-      this.listingModel.countDocuments({ favoritedBy: userId, active: true }).exec(),
+      this.listingModel
+        .countDocuments({ favoritedBy: userId, active: true })
+        .exec(),
     ]);
 
     return {
@@ -177,5 +185,38 @@ export class MarketplaceService {
         totalPages: Math.ceil(total / Number(limit)),
       },
     };
+  }
+
+  async getCategories() {
+    const categories = await this.categoryModel
+      .find({ active: true })
+      .sort({ displayOrder: 1 })
+      .exec();
+
+    return { categories };
+  }
+
+  async getLocations() {
+    const locations = await this.locationModel
+      .find({ active: true })
+      .sort({ city: 1 })
+      .exec();
+
+    return { locations };
+  }
+
+  async searchLocations(query: string) {
+    const locations = await this.locationModel
+      .find({
+        active: true,
+        $or: [
+          { city: { $regex: query, $options: 'i' } },
+          { state: { $regex: query, $options: 'i' } },
+        ],
+      })
+      .limit(10)
+      .exec();
+
+    return { locations };
   }
 }

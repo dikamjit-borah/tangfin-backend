@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Headers,
+} from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
 
 @Controller('marketplace')
@@ -52,14 +62,35 @@ export class MarketplaceController {
   }
 
   @Post(':id/favorite')
-  addToFavorites(@Param('id') id: string, @Headers('authorization') auth?: string) {
+  addToFavorites(
+    @Param('id') id: string,
+    @Headers('authorization') auth?: string,
+  ) {
     const userId = 'user123'; // Extract from auth token
     return this.marketplaceService.addToFavorites(id, userId);
   }
 
   @Delete(':id/favorite')
-  removeFromFavorites(@Param('id') id: string, @Headers('authorization') auth?: string) {
+  removeFromFavorites(
+    @Param('id') id: string,
+    @Headers('authorization') auth?: string,
+  ) {
     const userId = 'user123'; // Extract from auth token
     return this.marketplaceService.removeFromFavorites(id, userId);
+  }
+
+  @Get('categories')
+  getCategories() {
+    return this.marketplaceService.getCategories();
+  }
+
+  @Get('locations')
+  getLocations() {
+    return this.marketplaceService.getLocations();
+  }
+
+  @Get('locations/search')
+  searchLocations(@Query('q') query: string) {
+    return this.marketplaceService.searchLocations(query);
   }
 }

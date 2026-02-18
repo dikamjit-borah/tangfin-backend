@@ -30,6 +30,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception.stack,
     );
 
+    // Check if headers have already been sent
+    if (response.headersSent) {
+      return;
+    }
+
     response.status(status).json({
       success: false,
       statusCode: status,

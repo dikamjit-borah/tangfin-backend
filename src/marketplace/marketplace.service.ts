@@ -73,6 +73,7 @@ export class MarketplaceService {
     const listing = new this.listingModel({
       ...data,
       userId: data.userId || 'user123', // Should come from auth
+      username: data.username || 'defaultUser', // Should come from auth
       views: 0,
       favoritedBy: [],
       active: true,

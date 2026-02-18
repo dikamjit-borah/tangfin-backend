@@ -36,9 +36,9 @@ export class MarketplaceController {
     return this.marketplaceService.getUserListings(userId, query);
   }
 
-  @Get(':id')
-  getListing(@Param('id') id: string) {
-    return this.marketplaceService.getListing(id);
+  @Get('listings/:listingId')
+  getListing(@Param('listingId') listingId: string) {
+    return this.marketplaceService.getListing(listingId);
   }
 
   @Post()

@@ -33,6 +33,9 @@ export class Listing extends Document {
   @Prop({ required: true })
   userId: string;
 
+  @Prop({ required: true })
+  username: string;
+
   @Prop({ default: false })
   featured: boolean;
 

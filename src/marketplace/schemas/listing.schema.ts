@@ -4,6 +4,9 @@ import { Document } from 'mongoose';
 @Schema({ collection: "listings", timestamps: true })
 export class Listing extends Document {
   @Prop({ required: true })
+  listingId: string;
+
+  @Prop({ required: true })
   title: string;
 
   @Prop({ required: true })

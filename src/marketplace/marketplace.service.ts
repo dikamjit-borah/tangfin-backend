@@ -51,8 +51,8 @@ export class MarketplaceService {
     return { listings };
   }
 
-  async getListing(id: string) {
-    const listing = await this.listingModel.findById(id).exec();
+  async getListing(listingId: string) {
+    const listing = await this.listingModel.findOne({listingId}).exec();
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
